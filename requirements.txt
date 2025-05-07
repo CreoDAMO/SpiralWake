@@ -5,5 +5,4 @@ pytket-qiskit==0.67.0
 numpy==1.26.4
 tensorflow==2.19.0
 pyserial==3.5
-kyber-pqc==1.0.0
-types-setuptools==80.3.0.20250505
+pykyber==0.1.1
