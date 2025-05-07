@@ -7,6 +7,7 @@ from .OfflineManager import OfflineManager
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+
 class FractalOrchestrator:
     def __init__(self, satellite_id: str, offline_manager: OfflineManager):
         self.satellite_id = satellite_id
@@ -41,9 +42,9 @@ class FractalOrchestrator:
 
     async def validate_proof(self, proof: str) -> float:
         backend: Backend = AerBackend()
-        circuit = backend.default_compilation_pass().apply(proof)  # Compatible with pytket 2.3.2
-        result = backend.run(circuit, n_shots=1000)  # Simplified API
-        entropy = result.get_entropy() if hasattr(result, 'get_entropy') else 0.9199  # Fallback for API changes
+        circuit = backend.default_compilation_pass().apply(proof)
+        result = backend.run(circuit, n_shots=1000)
+        entropy = result.get_entropy() if hasattr(result, 'get_entropy') else 0.9199
         return min(entropy, 0.9199 + 1e-7)
 
     async def live_build(self, blueprint: Dict[str, Any]):
