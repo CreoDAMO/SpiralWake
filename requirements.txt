@@ -6,4 +6,4 @@ numpy==1.26.0
 tensorflow==2.14.0
 pyserial==3.5
 kyber-pqc==1.0.0
-types-pkg-resources==0.1.3
+types-pkg-resources==
