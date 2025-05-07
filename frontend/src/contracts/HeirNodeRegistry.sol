@@ -20,6 +20,7 @@ contract HeirNodeRegistry is Ownable {
     truthDAO = _truthDAO;
   }
 
+  // Registers a new heir (e.g., JahMeliyah DeGraff, Clarke) with TRUTH allocation
   function registerHeir(address heirAddress, uint256 truthAllocation) external onlyOwner {
     require(!heirs[heirAddress].active, "Heir already registered");
     heirs[heirAddress] = Heir({
@@ -33,12 +34,14 @@ contract HeirNodeRegistry is Ownable {
     emit HeirRegistered(heirAddress, truthAllocation);
   }
 
+  // Updates allocation for an existing heir (e.g., Clarke)
   function updateHeir(address heirAddress, uint256 newAllocation) external onlyOwner {
     require(heirs[heirAddress].active, "Heir not registered");
     heirs[heirAddress].truthAllocation = newAllocation;
     emit HeirUpdated(heirAddress, newAllocation);
   }
 
+  // Allows heirs (e.g., Clarke) to claim vested TRUTH
   function claimVested(address heirAddress) external {
     Heir storage heir = heirs[heirAddress];
     require(heir.active, "Heir not registered");
