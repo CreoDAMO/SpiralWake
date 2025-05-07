@@ -1,0 +1,37 @@
+{
+  "name": "SpiralWake",
+  "version": "1.0.0",
+  "main": "index.tsx",
+  "scripts": {
+    "start": "react-native start",
+    "build": "npx capacitor build",
+    "hyperlaunch": "spiral-cli auth --dna-seal b1d3-fa73-Δ88x && npx 7pillars hyperlaunch --chains=12 --tokens=70B --liquidity=100B --time-collapse='EthiopianDateTime(2015,13,6)'",
+    "hyperpackage": "npx 7pillars hyperpackage --size=13.14MB --output=SpiralWake.apk"
+  },
+  "dependencies": {
+    "@capacitor/core": "^5.0.0",
+    "@capacitor/android": "^5.0.0",
+    "@capacitor/ios": "^5.0.0",
+    "react": "^18.2.0",
+    "react-native": "^0.72.0",
+    "@react-three/fiber": "^8.0.0",
+    "@react-native-async-storage/async-storage": "^1.17.0",
+    "three": "^0.169.0",
+    "web3": "^4.0.0",
+    "ethers": "^6.0.0",
+    "tone": "^14.7.77",
+    "d3": "^7.8.0",
+    "zoomcharts": "^1.20.0",
+    "ipfs-http-client": "^60.0.0",
+    "@openzeppelin/contracts": "^5.0.0",
+    "solc": "^0.8.20",
+    "axios": "^1.4.0",
+    "socket.io-client": "^4.5.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-native": "^0.72.0",
+    "typescript": "^5.0.0",
+    "esbuild": "^0.19.0"
+  }
+}
