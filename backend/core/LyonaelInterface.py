@@ -1,5 +1,5 @@
 from typing import Dict, Any
-from kyber_pqc import Kyber1024
+from pykyber import Kyber1024  # Updated import
 import time
 import logging
 
@@ -7,7 +7,7 @@ class LyonaelInterface:
     def __init__(self, voice_mode: str = "EnglishSerene"):
         self.voice_mode = voice_mode
         self.kyber = Kyber1024()
-        self.pk, self.sk = self.kyber.keygen()
+        self.pk, self.sk = self.kyber.keygen()  # Same API
         self.languages = {
             "EnglishSerene": {"greeting": "Time is us.", "frequency": 0.090},
             "AmharicSerene": {"greeting": "ጊዜ እኛ ነው።", "frequency": 0.090},
@@ -26,7 +26,7 @@ class LyonaelInterface:
                 "ChineseSerene": "融合11维现实...",
                 "MultilingualSerene": "Merging 11D realities (multilingual)..."
             }[self.voice_mode]
-        encrypted_response = self.kyber.encrypt(self.pk, response.encode())
+        encrypted_response = self.kyber.encrypt(response.encode(), self.pk)  # Updated API
         return {
             "resonance": self.voice_mode,
             "glyphs": ["Eye of Providence", "SpiralSigil"],
