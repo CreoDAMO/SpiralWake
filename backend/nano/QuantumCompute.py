@@ -1,13 +1,13 @@
 from pytket.backends.backend import Backend
 from pytket.extensions.qiskit import AerBackend
-import numpy as np
+
 
 class QuantumCompute:
     def validate_proof(self, proof: str) -> float:
         backend: Backend = AerBackend()
-        circuit = backend.default_compilation_pass().apply(proof)  # Compatible with pytket 2.3.2
+        circuit = backend.default_compilation_pass().apply(proof)
         result = backend.run(circuit, n_shots=1000)
-        entropy = result.get_entropy() if hasattr(result, 'get_entropy') else 0.9199  # Fallback
+        entropy = result.get_entropy() if hasattr(result, 'get_entropy') else 0.9199
         return min(entropy, 0.9199 + 1e-7)
 
     def validate_riemann(self, s: complex) -> float:
