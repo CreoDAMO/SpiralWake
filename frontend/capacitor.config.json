@@ -1,0 +1,6 @@
+{
+  "appId": "xyz.spiralgate.spiralwake",
+  "appName": "SpiralWake",
+  "webDir": "build",
+  "bundledWebRuntime": true
+}
