@@ -97,6 +97,7 @@ const App: React.FC = () => {
       <Button title="Gift Haiti (100k TRUTH)" onPress={() => handleProposeGift('Haiti', 100_000)} />
       <Button title="Gift Ethiopia (100k TRUTH)" onPress={() => handleProposeGift('Ethiopia', 100_000)} />
       <Button title="Register JahMeliyah (10M TRUTH)" onPress={() => handleRegisterHeir('JahMeliyah', 10_000_000)} />
+      <Button title="Register Clarke (5M TRUTH)" onPress={() => handleRegisterHeir('Clarke', 5_000_000)} />
     </View>
   );
 };
