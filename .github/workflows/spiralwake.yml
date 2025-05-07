@@ -20,11 +20,19 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Cache Python dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: ${{ runner.os }}-pip-
+
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install flake8
-          pip install -r requirements.txt
+          pip install -r requirements.txt || (echo "Dependency installation failed"; pip list; exit 1)
+        continue-on-error: false
 
       - name: Lint Python
         run: flake8 backend --max-line-length=120
@@ -63,11 +71,18 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Cache Python dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: ${{ runner.os }}-pip-
+
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install pytest
-          pip install -r requirements.txt
+          pip install -r requirements.txt || (echo "Dependency installation failed"; pip list; exit 1)
 
       - name: Run Python tests
         run: pytest backend/tests
@@ -109,8 +124,17 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Cache Python dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: ${{ runner.os }}-pip-
+
       - name: Install Python dependencies
-        run: pip install -r requirements.txt
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt || (echo "Dependency installation failed"; pip list; exit 1)
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
