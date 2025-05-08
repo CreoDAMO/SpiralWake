@@ -67,11 +67,11 @@ jobs:
           done || (echo "npm install failed"; cat /home/runner/.npm/_logs/*.log; exit 1)
         continue-on-error: false
 
-      - name: Lint TypeScript
-        run: |
-          cd frontend
-          npx eslint src --ext .ts,.tsx --fix
-        continue-on-error: false
+      - name: Lint TypeScript (ESLint v9 + ESM)
+  run: |
+    cd frontend
+    node --input-type=module --eval "import('eslint').then(eslint => eslint.cli.main(['src', '--ext', '.ts,.tsx', '--fix']));"
+  continue-on-error: false
 
       - name: Install Solhint
         run: npm install -g solhint
