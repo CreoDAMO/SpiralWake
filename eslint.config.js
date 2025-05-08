@@ -1,11 +1,15 @@
+// eslint.config.js
 import js from '@eslint/js';
-import typescriptEslint from '@typescript-eslint/eslint-plugin';
+import { FlatCompat } from '@eslint/eslintrc';
 import tsParser from '@typescript-eslint/parser';
-import react from 'eslint-plugin-react';
-import reactHooks from 'eslint-plugin-react-hooks';
+
+const compat = new FlatCompat({
+  baseDirectory: import.meta.dirname,
+});
 
 export default [
-  {
+  js.configs.recommended,
+  ...compat.config({
     files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
       parser: tsParser,
@@ -15,17 +19,13 @@ export default [
         project: './tsconfig.json',
       },
     },
-    plugins: {
-      '@typescript-eslint': typescriptEslint,
-      react,
-      'react-hooks': reactHooks,
-    },
+    extends: [
+      'plugin:@typescript-eslint/recommended',
+      'plugin:react/recommended',
+      'plugin:react-hooks/recommended',
+    ],
     rules: {
-      ...js.configs.recommended.rules,
-      ...typescriptEslint.configs.recommended.rules,
-      ...react.configs.recommended.rules,
-      ...reactHooks.configs.recommended.rules,
-      'react/prop-types': 'off', // Disabled since we use TypeScript
+      'react/prop-types': 'off',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       'no-console': ['warn', { allow: ['error'] }],
     },
@@ -34,5 +34,5 @@ export default [
         version: 'detect',
       },
     },
-  },
+  }),
 ];
