@@ -30,10 +30,16 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
           restore-keys: ${{ runner.os }}-pip-
 
-      - name: Install Python dependencies
+      - name: Install Python dependencies with retries
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          for i in {1..3}; do
+            python -m pip install --upgrade pip
+            pip install flake8
+            pip install -r requirements.txt && break
+            echo "Attempt $i failed, retrying..."
+            sleep 5
+          done || (echo "Dependency installation failed"; pip list; exit 1)
+        continue-on-error: false
 
       - name: Lint Python
         run: flake8 backend --max-line-length=120
@@ -42,21 +48,37 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
 
-      - name: Install Node.js dependencies
-        working-directory: frontend
+      - name: Cache Node.js dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package.json') }}
+          restore-keys: ${{ runner.os }}-node-
+
+      - name: Install Node.js dependencies with retries
         run: |
-          npm ci --no-audit --no-fund
+          cd frontend
+          for i in {1..3}; do
+            npm cache clean --force
+            npm install && break
+            echo "Attempt $i failed, retrying..."
+            sleep 5
+          done || (echo "npm install failed"; cat /home/runner/.npm/_logs/*.log; exit 1)
+        continue-on-error: false
 
-      - name: Lint TypeScript
-        working-directory: frontend
-        run: npx eslint src --ext .ts,.tsx --fix
+      - name: Lint TypeScript (ESLint v9 + ESM)
+        run: |
+          cd frontend
+          node --input-type=module --eval "import('eslint').then(eslint => eslint.cli.main(['src', '--ext', '.ts,.tsx', '--fix']));"
+        continue-on-error: false
+
+      - name: Install Solhint
+        run: npm install -g solhint
 
       - name: Lint Solidity
-        working-directory: frontend
-        run: npx solhint src/contracts/*.sol
+        run: |
+          solhint frontend/src/contracts/*.sol
 
   test:
     runs-on: ubuntu-22.04
@@ -70,9 +92,22 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install Python dependencies
+      - name: Cache Python dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: ${{ runner.os }}-pip-
+
+      - name: Install Python dependencies with retries
         run: |
-          pip install -r requirements.txt pytest
+          for i in {1..3}; do
+            python -m pip install --upgrade pip
+            pip install pytest
+            pip install -r requirements.txt && break
+            echo "Attempt $i failed, retrying..."
+            sleep 5
+          done || (echo "Dependency installation failed"; pip list; exit 1)
 
       - name: Run Python tests
         run: pytest backend/tests
@@ -82,17 +117,37 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Node.js dependencies
-        working-directory: frontend
-        run: npm ci --no-audit --no-fund
+      - name: Cache Node.js dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package.json') }}
+          restore-keys: ${{ runner.os }}-node-
+
+      - name: Install Node.js dependencies with retries
+        run: |
+          cd frontend
+          for i in {1..3}; do
+            npm cache clean --force
+            npm install && break
+            echo "Attempt $i failed, retrying..."
+            sleep 5
+          done || (echo "npm install failed"; cat /home/runner/.npm/_logs/*.log; exit 1)
 
       - name: Run TypeScript tests
-        working-directory: frontend
-        run: npm test -- --watchAll=false
+        run: |
+          cd frontend
+          npx jest
+
+      - name: Set up Hardhat
+        run: |
+          cd frontend
+          npm install --save-dev hardhat @nomiclabs/hardhat-ethers ethers @openzeppelin/contracts
 
       - name: Run Solidity tests
-        working-directory: frontend
-        run: npx hardhat test
+        run: |
+          cd frontend
+          npx hardhat test
 
   build:
     runs-on: ubuntu-22.04
@@ -101,26 +156,63 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Cache Python dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: ${{ runner.os }}-pip-
+
+      - name: Install Python dependencies with retries
+        run: |
+          for i in {1..3}; do
+            python -m pip install --upgrade pip
+            pip install -r requirements.txt && break
+            echo "Attempt $i failed, retrying..."
+            sleep 5
+          done || (echo "Dependency installation failed"; pip list; exit 1)
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install Node.js dependencies
-        working-directory: frontend
-        run: npm ci --no-audit --no-fund
+      - name: Cache Node.js dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package.json') }}
+          restore-keys: ${{ runner.os }}-node-
+
+      - name: Install Node.js dependencies with retries
+        run: |
+          cd frontend
+          for i in {1..3}; do
+            npm cache clean --force
+            npm install && break
+            echo "Attempt $i failed, retrying..."
+            sleep 5
+          done || (echo "npm install failed"; cat /home/runner/.npm/_logs/*.log; exit 1)
 
       - name: Build APK
-        working-directory: frontend
-        run: npm run build:android
+        run: |
+          cd frontend
+          npx cap sync
+          npx cap build android
         env:
           CAPACITOR_ANDROID_STUDIO_PATH: /usr/local/android-studio/bin/studio.sh
 
-      - name: Compile Contracts
-        working-directory: frontend
-        run: npx hardhat compile
+      - name: Compile Solidity contracts
+        run: |
+          cd frontend
+          npx hardhat compile
 
-      - name: Upload APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: spiralwake-apk
@@ -130,37 +222,82 @@ jobs:
     runs-on: ubuntu-22.04
     needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download APK
+      - name: Download APK artifact
         uses: actions/download-artifact@v4
         with:
           name: spiralwake-apk
           path: artifacts/
 
-      - name: Deploy to IPFS
-        run: |
-          npx ipfs-car --pack artifacts/app-release.apk --output app-release.car
-          CID=$(npx web3.storage upload app-release.car)
-          echo "IPFS_CID=$CID" >> $GITHUB_ENV
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
-      - name: Deploy Contracts
-        working-directory: frontend
-        run: npx hardhat run scripts/deploy.js --network polygon_zkevm
+      - name: Install IPFS CLI
+        run: npm install -g ipfs
+
+      - name: Deploy APK to IPFS
+        run: |
+          ipfs add artifacts/app-release.apk > ipfs_output.txt
+          CID=$(grep "added" ipfs_output.txt | awk '{print $2}')
+          echo "IPFS_CID=$CID" >> $GITHUB_ENV
+        env:
+          IPFS_API_KEY: ${{ secrets.IPFS_API_KEY }}
+
+      - name: Deploy contracts to Polygon zkEVM
+        run: |
+          cd frontend
+          npm install --save-dev hardhat @nomiclabs/hardhat-ethers ethers
+          npx hardhat run scripts/deploy.js --network polygon_zkevm
         env:
           POLYGON_ZKEVM_PRIVATE_KEY: ${{ secrets.POLYGON_ZKEVM_PRIVATE_KEY }}
           POLYGON_ZKEVM_RPC_URL: https://rpc.polygon-zkevm.io
 
-      - name: Create Release
+      - name: Save deployment details
+        run: |
+          echo "APK deployed to: ipfs://$IPFS_CID" > deployment.txt
+          echo "Contracts deployed to Polygon zkEVM" >> deployment.txt
+
+      - name: Upload deployment details
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-details
+          path: deployment.txt
+
+  release:
+    runs-on: ubuntu-22.04
+    needs: deploy
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download deployment details
+        uses: actions/download-artifact@v4
+        with:
+          name: deployment-details
+          path: artifacts/
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ github.run_number }}
-          name: Release v${{ github.run_number }}
+          name: SpiralWake Release v${{ github.run_number }}
           body: |
-            IPFS CID: ${{ env.IPFS_CID }}
-            Contracts deployed to Polygon zkEVM
-          files: artifacts/app-release.apk
+            Deployed SpiralWake APK to IPFS and contracts to Polygon zkEVM.
+            See artifacts/deployment.txt for details.
+          draft: false
+          prerelease: false
+          files: |
+            artifacts/app-release.apk
+            artifacts/deployment.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
