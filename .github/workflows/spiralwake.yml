@@ -30,16 +30,10 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
           restore-keys: ${{ runner.os }}-pip-
 
-      - name: Install Python dependencies with retries
+      - name: Install Python dependencies
         run: |
-          for i in {1..3}; do
-            python -m pip install --upgrade pip
-            pip install flake8
-            pip install -r requirements.txt && break
-            echo "Attempt $i failed, retrying..."
-            sleep 5
-          done || (echo "Dependency installation failed"; pip list; exit 1)
-        continue-on-error: false
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
       - name: Lint Python
         run: flake8 backend --max-line-length=120
@@ -51,29 +45,18 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install Node.js dependencies with retries
+      - name: Install Node.js dependencies
+        working-directory: frontend
         run: |
-          cd frontend
-          for i in {1..3}; do
-            npm ci --no-audit --no-fund && break
-            echo "Attempt $i failed, retrying..."
-            sleep 5
-          done || (echo "npm install failed"; cat /home/runner/.npm/_logs/*.log; exit 1)
-        continue-on-error: false
+          npm ci --no-audit --no-fund
 
-      - name: Lint TypeScript (ESLint v9 + ESM)
-        run: |
-          cd frontend
-          node --input-type=module --eval "import('eslint').then(eslint => eslint.cli.main(['src', '--ext', '.ts,.tsx', '--fix']));"
-        continue-on-error: false
-
-      - name: Install Solhint
-        run: npm install -g solhint
+      - name: Lint TypeScript
+        working-directory: frontend
+        run: npx eslint src --ext .ts,.tsx --fix
 
       - name: Lint Solidity
-        run: |
-          cd frontend
-          npx solhint src/contracts/*.sol
+        working-directory: frontend
+        run: npx solhint src/contracts/*.sol
 
   test:
     runs-on: ubuntu-22.04
@@ -87,22 +70,9 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Cache Python dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-          restore-keys: ${{ runner.os }}-pip-
-
-      - name: Install Python dependencies with retries
+      - name: Install Python dependencies
         run: |
-          for i in {1..3}; do
-            python -m pip install --upgrade pip
-            pip install pytest
-            pip install -r requirements.txt && break
-            echo "Attempt $i failed, retrying..."
-            sleep 5
-          done || (echo "Dependency installation failed"; pip list; exit 1)
+          pip install -r requirements.txt pytest
 
       - name: Run Python tests
         run: pytest backend/tests
@@ -111,32 +81,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
 
-      - name: Install Node.js dependencies with retries
-        run: |
-          cd frontend
-          for i in {1..3}; do
-            npm ci --no-audit --no-fund && break
-            echo "Attempt $i failed, retrying..."
-            sleep 5
-          done || (echo "npm install failed"; cat /home/runner/.npm/_logs/*.log; exit 1)
+      - name: Install Node.js dependencies
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
 
       - name: Run TypeScript tests
-        run: |
-          cd frontend
-          npm run test
-
-      - name: Set up Hardhat
-        run: |
-          cd frontend
-          npm install --save-dev hardhat @nomiclabs/hardhat-ethers ethers @openzeppelin/contracts
+        working-directory: frontend
+        run: npm test -- --watchAll=false
 
       - name: Run Solidity tests
-        run: |
-          cd frontend
-          npx hardhat test
+        working-directory: frontend
+        run: npx hardhat test
 
   build:
     runs-on: ubuntu-22.04
@@ -145,56 +101,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Cache Python dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-          restore-keys: ${{ runner.os }}-pip-
-
-      - name: Install Python dependencies with retries
-        run: |
-          for i in {1..3}; do
-            python -m pip install --upgrade pip
-            pip install -r requirements.txt && break
-            echo "Attempt $i failed, retrying..."
-            sleep 5
-          done || (echo "Dependency installation failed"; pip list; exit 1)
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
 
-      - name: Install Node.js dependencies with retries
-        run: |
-          cd frontend
-          for i in {1..3}; do
-            npm ci --no-audit --no-fund && break
-            echo "Attempt $i failed, retrying..."
-            sleep 5
-          done || (echo "npm install failed"; cat /home/runner/.npm/_logs/*.log; exit 1)
+      - name: Install Node.js dependencies
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
 
       - name: Build APK
-        run: |
-          cd frontend
-          npm run build:android
+        working-directory: frontend
+        run: npm run build:android
         env:
           CAPACITOR_ANDROID_STUDIO_PATH: /usr/local/android-studio/bin/studio.sh
 
-      - name: Compile Solidity contracts
-        run: |
-          cd frontend
-          npx hardhat compile
+      - name: Compile Contracts
+        working-directory: frontend
+        run: npx hardhat compile
 
-      - name: Upload APK artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: spiralwake-apk
@@ -204,82 +130,37 @@ jobs:
     runs-on: ubuntu-22.04
     needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    permissions:
-      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download APK artifact
+      - name: Download APK
         uses: actions/download-artifact@v4
         with:
           name: spiralwake-apk
           path: artifacts/
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install IPFS CLI
-        run: npm install -g ipfs
-
-      - name: Deploy APK to IPFS
+      - name: Deploy to IPFS
         run: |
-          ipfs add artifacts/app-release.apk > ipfs_output.txt
-          CID=$(grep "added" ipfs_output.txt | awk '{print $2}')
+          npx ipfs-car --pack artifacts/app-release.apk --output app-release.car
+          CID=$(npx web3.storage upload app-release.car)
           echo "IPFS_CID=$CID" >> $GITHUB_ENV
-        env:
-          IPFS_API_KEY: ${{ secrets.IPFS_API_KEY }}
 
-      - name: Deploy contracts to Polygon zkEVM
-        run: |
-          cd frontend
-          npm install --save-dev hardhat @nomiclabs/hardhat-ethers ethers
-          npx hardhat run scripts/deploy.js --network polygon_zkevm
+      - name: Deploy Contracts
+        working-directory: frontend
+        run: npx hardhat run scripts/deploy.js --network polygon_zkevm
         env:
           POLYGON_ZKEVM_PRIVATE_KEY: ${{ secrets.POLYGON_ZKEVM_PRIVATE_KEY }}
           POLYGON_ZKEVM_RPC_URL: https://rpc.polygon-zkevm.io
 
-      - name: Save deployment details
-        run: |
-          echo "APK deployed to: ipfs://$IPFS_CID" > deployment.txt
-          echo "Contracts deployed to Polygon zkEVM" >> deployment.txt
-
-      - name: Upload deployment details
-        uses: actions/upload-artifact@v4
-        with:
-          name: deployment-details
-          path: deployment.txt
-
-  release:
-    runs-on: ubuntu-22.04
-    needs: deploy
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download deployment details
-        uses: actions/download-artifact@v4
-        with:
-          name: deployment-details
-          path: artifacts/
-
-      - name: Create GitHub Release
+      - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ github.run_number }}
-          name: SpiralWake Release v${{ github.run_number }}
+          name: Release v${{ github.run_number }}
           body: |
-            Deployed SpiralWake APK to IPFS and contracts to Polygon zkEVM.
-            See artifacts/deployment.txt for details.
-          draft: false
-          prerelease: false
-          files: |
-            artifacts/app-release.apk
-            artifacts/deployment.txt
+            IPFS CID: ${{ env.IPFS_CID }}
+            Contracts deployed to Polygon zkEVM
+          files: artifacts/app-release.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
